@@ -2,14 +2,14 @@
 
 > **Stream money like water** — real-time continuous payment streaming built on Stellar Testnet using Soroban smart contracts.
 
-[![Live Demo](https://img.shields.io/badge/Live%20Demo-Vercel-blue)](https://frontend-jayantvaibhav.vercel.app)
+[![Live Demo](https://img.shields.io/badge/Live%20Demo-Netlify-blue)](https://stellarflow-jayant.netlify.app)
 [![Testnet Contract](https://img.shields.io/badge/Contract-Testnet-green)](https://stellar.expert/explorer/testnet/contract/CDVKXMYN2STPUCCUY742YSNHTM3KJFPPJIW3CKMS7N6SIS3IWKHXS3RJ)
 
 ---
 
 ## 🚀 Live Demo
 
-🔗 **[https://frontend-jayantvaibhav.vercel.app](https://frontend-jayantvaibhav.vercel.app)**
+🔗 **[https://stellarflow-jayant.netlify.app](https://stellarflow-jayant.netlify.app)**
 
 📹 **Demo Video:** *(add YouTube link after recording)*
 
@@ -47,7 +47,7 @@ StellarFlow enables **real-time continuous payment streaming** on the Stellar te
 | Frontend | React + Vite |
 | Wallet | Freighter (@stellar/freighter-api v6) |
 | Stellar SDK | @stellar/stellar-sdk |
-| Deployment | Vercel |
+| Deployment | Netlify |
 | Network | Stellar Testnet |
 
 ---
@@ -99,6 +99,7 @@ After collecting feedback from 5+ testnet users, the following improvements will
 - ✅ Fixed Freighter wallet connection (upgraded to freighter-api v6)
 - ✅ Improved error handling and user messages
 - ✅ Added real-time balance refresh every 15 seconds
+- ✅ Deployed to public Netlify URL
 - 🔗 Commit: [086a6a4](https://github.com/jayantvaibhavspj/stellar-bluebelt/commit/086a6a4)
 
 ### Planned Improvements (Phase 2)
