@@ -1,11 +1,33 @@
 import { useState, useEffect } from 'react';
-import * as StellarSdk from '@stellar/stellar-sdk';
-import freighterApi from '@stellar/freighter-api';
+import {
+  Contract,
+  TransactionBuilder,
+  Networks,
+  Account,
+  Address,
+  nativeToScVal,
+  scValToNative,
+  xdr,
+} from '@stellar/stellar-sdk';
+import * as freighterApi from '@stellar/freighter-api';
 import './App.css';
 
 const CONTRACT_ID = 'CDVKXMYN2STPUCCUY742YSNHTM3KJFPPJIW3CKMS7N6SIS3IWKHXS3RJ';
-const NETWORK_PASSPHRASE = StellarSdk.Networks.TESTNET;
+const NETWORK_PASSPHRASE = Networks.TESTNET;
 const RPC_URL = 'https://soroban-testnet.stellar.org';
+const HORIZON_URL = 'https://horizon-testnet.stellar.org';
+
+// Pure raw RPC call
+const callRPC = async (method, params) => {
+  const res = await fetch(RPC_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ jsonrpc: '2.0', id: 1, method, params }),
+  });
+  const data = await res.json();
+  if (data.error) throw new Error(data.error.message || JSON.stringify(data.error));
+  return data.result;
+};
 
 const App = () => {
   const [publicKey, setPublicKey] = useState(null);
@@ -15,7 +37,6 @@ const App = () => {
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
   const [activeTab, setActiveTab] = useState('create');
-
   const [receiver, setReceiver] = useState('');
   const [rate, setRate] = useState('');
   const [duration, setDuration] = useState('');
@@ -26,28 +47,14 @@ const App = () => {
     setLoading(true);
     setError(null);
     try {
-      // Check if Freighter is installed
-      const isConnectedResult = await freighterApi.isConnected();
-      if (!isConnectedResult.isConnected) {
+      const connected = await freighterApi.isConnected();
+      if (!connected?.isConnected) {
         setError('Please install Freighter wallet!');
         return;
       }
-
-      // Request access
-      const accessResult = await freighterApi.requestAccess();
-      if (accessResult.error) {
-        setError('Access denied: ' + accessResult.error);
-        return;
-      }
-
-      // Get public key
+      await freighterApi.requestAccess();
       const addressResult = await freighterApi.getAddress();
-      if (addressResult.error) {
-        setError('Could not get address: ' + addressResult.error);
-        return;
-      }
-
-      const pubKey = addressResult.address;
+      const pubKey = addressResult.address || addressResult;
       setPublicKey(pubKey);
       await fetchBalance(pubKey);
       setSuccess('Wallet connected!');
@@ -60,9 +67,9 @@ const App = () => {
 
   const fetchBalance = async (address) => {
     try {
-      const server = new StellarSdk.Horizon.Server('https://horizon-testnet.stellar.org');
-      const account = await server.accounts().accountId(address).call();
-      const xlm = account.balances.find(b => b.asset_type === 'native');
+      const res = await fetch(`${HORIZON_URL}/accounts/${address}`);
+      const data = await res.json();
+      const xlm = data.balances?.find(b => b.asset_type === 'native');
       setBalance(xlm ? parseFloat(xlm.balance).toFixed(2) : '0');
     } catch (err) {
       console.log('Balance error:', err.message);
@@ -75,6 +82,10 @@ const App = () => {
     setStreamCount(0);
     setSuccess(null);
     setError(null);
+    setReceiver('');
+    setRate('');
+    setDuration('');
+    setDeposit('');
   };
 
   const createStream = async () => {
@@ -87,50 +98,114 @@ const App = () => {
     setSuccess(null);
 
     try {
-      const server = new StellarSdk.SorobanRpc.Server(RPC_URL);
-      const contract = new StellarSdk.Contract(CONTRACT_ID);
-      const sourceAccount = await server.getAccount(publicKey);
+      // Step 1: Get account sequence from Horizon
+      const accRes = await fetch(`${HORIZON_URL}/accounts/${publicKey}`);
+      const accInfo = await accRes.json();
+      const sourceAccount = new Account(publicKey, accInfo.sequence);
 
-      const tx = new StellarSdk.TransactionBuilder(sourceAccount, {
-        fee: StellarSdk.BASE_FEE,
+      // Step 2: Build basic transaction XDR
+      const contract = new Contract(CONTRACT_ID);
+      const tx = new TransactionBuilder(sourceAccount, {
+        fee: '100',
         networkPassphrase: NETWORK_PASSPHRASE,
       })
         .addOperation(contract.call(
           'create_stream',
-          StellarSdk.Address.fromString(publicKey).toScVal(),
-          StellarSdk.Address.fromString(receiver).toScVal(),
-          StellarSdk.nativeToScVal(parseInt(rate), { type: 'i128' }),
-          StellarSdk.nativeToScVal(parseInt(duration), { type: 'u64' }),
-          StellarSdk.nativeToScVal(parseInt(deposit), { type: 'i128' }),
+          Address.fromString(publicKey).toScVal(),
+          Address.fromString(receiver).toScVal(),
+          nativeToScVal(parseInt(rate), { type: 'i128' }),
+          nativeToScVal(parseInt(duration), { type: 'u64' }),
+          nativeToScVal(parseInt(deposit), { type: 'i128' }),
         ))
         .setTimeout(180)
         .build();
 
-      const prepared = await server.prepareTransaction(tx);
-      const xdr = prepared.toEnvelope().toXDR('base64');
+      const txXdr = tx.toEnvelope().toXDR('base64');
+      console.log('Built TX XDR');
 
-      const signResult = await freighterApi.signTransaction(xdr, {
+      // Step 3: Simulate via raw RPC to get soroban data
+      const simResult = await callRPC('simulateTransaction', { transaction: txXdr });
+      console.log('Sim result:', JSON.stringify(simResult).slice(0, 200));
+
+      if (simResult.error) throw new Error('Sim error: ' + simResult.error);
+
+      // Step 4: Rebuild TX with proper fee from simulation
+      const minFee = parseInt(simResult.minResourceFee || '50000');
+      const totalFee = (minFee + 1000).toString();
+
+      // Get fresh sequence
+      const accRes2 = await fetch(`${HORIZON_URL}/accounts/${publicKey}`);
+      const accInfo2 = await accRes2.json();
+      const sourceAccount2 = new Account(publicKey, accInfo2.sequence);
+
+      const tx2 = new TransactionBuilder(sourceAccount2, {
+        fee: totalFee,
+        networkPassphrase: NETWORK_PASSPHRASE,
+      })
+        .addOperation(contract.call(
+          'create_stream',
+          Address.fromString(publicKey).toScVal(),
+          Address.fromString(receiver).toScVal(),
+          nativeToScVal(parseInt(rate), { type: 'i128' }),
+          nativeToScVal(parseInt(duration), { type: 'u64' }),
+          nativeToScVal(parseInt(deposit), { type: 'i128' }),
+        ))
+        .setTimeout(180)
+        .build();
+
+      // Step 5: Apply soroban transaction data via XDR manipulation
+      const tx2Envelope = tx2.toEnvelope();
+      const txV1 = tx2Envelope.v1();
+
+      // Set soroban data
+      if (simResult.transactionData) {
+        const sorobanData = xdr.SorobanTransactionData.fromXDR(
+          simResult.transactionData, 'base64'
+        );
+        txV1.tx().ext(
+          new xdr.TransactionExt(1, sorobanData)
+        );
+      }
+
+      // Set auth on operation
+      if (simResult.results?.[0]?.auth?.length > 0) {
+        const authEntries = simResult.results[0].auth.map(a =>
+          xdr.SorobanAuthorizationEntry.fromXDR(a, 'base64')
+        );
+        const op = txV1.tx().operations()[0];
+        const invokeOp = op.body().invokeHostFunctionOp();
+        invokeOp.auth(authEntries);
+      }
+
+      // Rebuild final XDR
+      const finalXdr = tx2Envelope.toXDR('base64');
+      console.log('Final TX XDR ready');
+
+      // Step 6: Sign with Freighter
+      const signResult = await freighterApi.signTransaction(finalXdr, {
         networkPassphrase: NETWORK_PASSPHRASE,
       });
 
-      if (signResult.error) {
-        setError('Signing failed: ' + signResult.error);
-        return;
+      if (signResult.error) throw new Error('Sign error: ' + signResult.error);
+      const signedXdr = signResult.signedTxXdr || signResult;
+      console.log('Signed!');
+
+      // Step 7: Send via raw RPC
+      const sendResult = await callRPC('sendTransaction', { transaction: signedXdr });
+      console.log('Send result:', sendResult);
+
+      if (sendResult.status === 'ERROR') {
+        throw new Error('TX failed: ' + JSON.stringify(sendResult));
       }
 
-      const txEnvelope = StellarSdk.TransactionBuilder.fromXDR(
-        signResult.signedTxXdr,
-        NETWORK_PASSPHRASE
-      );
-      const result = await server.sendTransaction(txEnvelope);
-
-      setSuccess('Stream created! TX: ' + result.hash);
+      setSuccess('🎉 Stream created! TX: ' + sendResult.hash);
       await fetchBalance(publicKey);
       setReceiver('');
       setRate('');
       setDuration('');
       setDeposit('');
     } catch (err) {
+      console.log('Full error:', err);
       setError('Failed: ' + err.message);
     } finally {
       setIsSending(false);
@@ -139,21 +214,25 @@ const App = () => {
 
   const getStreamCount = async () => {
     try {
-      const server = new StellarSdk.SorobanRpc.Server(RPC_URL);
-      const contract = new StellarSdk.Contract(CONTRACT_ID);
-      const sourceAccount = await server.getAccount(publicKey);
+      const accRes = await fetch(`${HORIZON_URL}/accounts/${publicKey}`);
+      const accInfo = await accRes.json();
+      const sourceAccount = new Account(publicKey, accInfo.sequence);
+      const contract = new Contract(CONTRACT_ID);
 
-      const tx = new StellarSdk.TransactionBuilder(sourceAccount, {
-        fee: StellarSdk.BASE_FEE,
+      const tx = new TransactionBuilder(sourceAccount, {
+        fee: '100',
         networkPassphrase: NETWORK_PASSPHRASE,
       })
         .addOperation(contract.call('get_stream_count'))
         .setTimeout(30)
         .build();
 
-      const result = await server.simulateTransaction(tx);
-      if (result.result) {
-        const count = StellarSdk.scValToNative(result.result.retval);
+      const txXdr = tx.toEnvelope().toXDR('base64');
+      const result = await callRPC('simulateTransaction', { transaction: txXdr });
+
+      if (result.results?.[0]?.xdr) {
+        const retval = xdr.ScVal.fromXDR(result.results[0].xdr, 'base64');
+        const count = scValToNative(retval);
         setStreamCount(Number(count));
         setSuccess('Total streams: ' + count);
       }
@@ -193,11 +272,11 @@ const App = () => {
           <div className="connect-card">
             <div className="hero">
               <h2>Stream Money Like Water 💧</h2>
-              <p>Create continuous payment streams on Stellar Testnet. Pay per second, per minute, or per hour.</p>
+              <p>Create continuous payment streams on Stellar Testnet.</p>
               <div className="features">
                 <div className="feature">⚡ Real-time streaming</div>
                 <div className="feature">⏸️ Pause anytime</div>
-                <div className="feature">🔒 Secure & transparent</div>
+                <div className="feature">🔒 Secure</div>
                 <div className="feature">💰 Any amount</div>
               </div>
             </div>
@@ -217,7 +296,7 @@ const App = () => {
                 <h3>{publicKey.slice(0, 8)}...</h3>
               </div>
               <div className="stat-card" onClick={getStreamCount} style={{cursor:'pointer'}}>
-                <label>Total Streams (click)</label>
+                <label>Total Streams (Click)</label>
                 <h3>{streamCount} 🔄</h3>
               </div>
             </div>
@@ -242,8 +321,9 @@ const App = () => {
                 <h2>Create Payment Stream</h2>
                 <div className="form">
                   <div className="form-group">
-                    <label>Receiver Address</label>
+                    <label htmlFor="receiver">Receiver Address</label>
                     <input
+                      id="receiver"
                       type="text"
                       placeholder="G... (Stellar public key)"
                       value={receiver}
@@ -253,8 +333,9 @@ const App = () => {
                   </div>
                   <div className="form-row">
                     <div className="form-group">
-                      <label>Rate (stroops/second)</label>
+                      <label htmlFor="rate">Rate (stroops/second)</label>
                       <input
+                        id="rate"
                         type="number"
                         placeholder="e.g. 10"
                         value={rate}
@@ -263,8 +344,9 @@ const App = () => {
                       />
                     </div>
                     <div className="form-group">
-                      <label>Duration (seconds)</label>
+                      <label htmlFor="duration">Duration (seconds)</label>
                       <input
+                        id="duration"
                         type="number"
                         placeholder="e.g. 3600"
                         value={duration}
@@ -274,8 +356,9 @@ const App = () => {
                     </div>
                   </div>
                   <div className="form-group">
-                    <label>Total Deposit (stroops)</label>
+                    <label htmlFor="deposit">Total Deposit (stroops)</label>
                     <input
+                      id="deposit"
                       type="number"
                       placeholder="e.g. 36000"
                       value={deposit}
@@ -285,7 +368,7 @@ const App = () => {
                   </div>
                   {rate && duration && (
                     <div className="preview">
-                      💡 Streaming {rate} stroops/sec for {duration} seconds = {rate * duration} stroops total
+                      💡 Streaming {rate} stroops/sec for {duration} sec = {rate * duration} stroops total
                     </div>
                   )}
                   <button onClick={createStream} disabled={isSending} className="btn-primary">
@@ -303,7 +386,7 @@ const App = () => {
                     <span className="step-num">1</span>
                     <div>
                       <h4>Create a Stream</h4>
-                      <p>Set receiver, rate per second, duration, and deposit amount</p>
+                      <p>Set receiver, rate per second, duration, and deposit</p>
                     </div>
                   </div>
                   <div className="step">
