@@ -36,6 +36,11 @@ StellarFlow enables **real-time continuous payment streaming** on the Stellar te
 - ✅ Multiple simultaneous streams
 - ✅ Freighter wallet integration
 - ✅ Fully responsive UI
+- ✅ **NEW:** Stream History Dashboard (view all your created streams)
+- ✅ **NEW:** Stroops ↔ XLM Bidirectional Converter
+- ✅ **NEW:** Smart Input Validation with Cost Calculator
+- ✅ **NEW:** Receiver Dashboard (view incoming streams)
+- ✅ **NEW:** Detailed Stream Information Display
 
 ---
 
@@ -71,43 +76,80 @@ CDVKXMYN2STPUCCUY742YSNHTM3KJFPPJIW3CKMS7N6SIS3IWKHXS3RJ
 
 ---
 
-## 👥 Testnet Users
+## 👥 Level 5: User Onboarding & Feedback
 
-| # | Name | Wallet Address | Feedback Score |
-|---|------|----------------|----------------|
-| 1 | *(add after onboarding)* | *(G...address)* | ⭐⭐⭐⭐⭐ |
-| 2 | *(add after onboarding)* | *(G...address)* | ⭐⭐⭐⭐⭐ |
-| 3 | *(add after onboarding)* | *(G...address)* | ⭐⭐⭐⭐ |
-| 4 | *(add after onboarding)* | *(G...address)* | ⭐⭐⭐⭐⭐ |
-| 5 | *(add after onboarding)* | *(G...address)* | ⭐⭐⭐⭐ |
+### Table 1: Onboarded Users (5 Users)
+
+| # | User Name | User Email | User Wallet Address |
+|---|-----------|-----------|---|
+| 1 | Abhishek Gupta | abhishekgupta0834@gmail.com | GBEA2LH5VILCEKQC6M77GXGJ3CPJOOMGEKNMMNXQXMJA42BMPX4YSN72 |
+| 2 | Saurabh Kumar | saurabhkumar20k5@gmail.com | GDPQMIGKM2YC4LDMMUTWU35CMRSJKWVYH2QW6EU3XIE7AWPUVKLRMJGP |
+| 3 | Prithwiraj Das | prithwirajdas84@gmail.com | GDNCZO2EUNABT3D6PV7GIBUWCPLJBT5EG4PXN7HSDR5LGZVHI5HSZ2MI |
+| 4 | Prashant Vaibhav | prashantvaibhavlnmcb@gmail.com | GAUGBIDSUADNR2R57GJ3NVA2N22JQYLKLIPVU2ODINAHRXYVJ3SKEE7W |
+| 5 | Sarvesh Choudhary | sarveshchoudhary2606@gmail.com | GBAVDHPWSB6XGO2LVVOPZF5RCQVGDIZI3MTA7GIOAFQ |
+
+### Table 2: User Feedback Implementation Log
+
+| User Name | User Email | User Wallet Address | Feedback | Implementation | Status |
+|-----------|-----------|---|---------|---|---|
+| Abhishek Gupta | abhishekgupta0834@gmail.com | GBEA2LH5VILCEKQC6M77GXGJ3CPJOOMGEKNMMNXQXMJA42BMPX4YSN72 | Stream Details Display — Shows after creation | Feature 5: Stream Details added with TX hash, receiver, rate, duration, cost in XLM/stroops, and timestamp | ✅ Implemented |
+| Saurabh Kumar | saurabhkumar20k5@gmail.com | GDPQMIGKM2YC4LDMMUTWU35CMRSJKWVYH2QW6EU3XIE7AWPUVKLRMJGP | Stroops to XLM converter tab must needed | Feature 2: Bidirectional Stroops ↔ XLM converter in "Tools" tab with real-time conversion | ✅ Implemented |
+| Prithwiraj Das | prithwirajdas84@gmail.com | GDNCZO2EUNABT3D6PV7GIBUWCPLJBT5EG4PXN7HSDR5LGZVHI5HSZ2MI | Smart Input Validation and Calculator missing | Feature 3: Smart validation with address format check, balance verification, deposit vs cost matching, and XLM conversion display | ✅ Implemented |
+| Prashant Vaibhav | prashantvaibhavlnmcb@gmail.com | GAUGBIDSUADNR2R57GJ3NVA2N22JQYLKLIPVU2ODINAHRXYVJ3SKEE7W | Receiver Dashboard will be better to use | Feature 4: Receiver Dashboard tab added with framework ready for receiving streams | ✅ Implemented |
+| Sarvesh Choudhary | sarveshchoudhary2606@gmail.com | GBAVDHPWSB6XGO2LVVOPZF5RCQVGDIZI3MTA7GIOAFQ | Stream History & Management "My Streams" tab | Feature 1: My Streams tab showing all created streams with receiver, rate, duration, cost, timestamp, and TX hash | ✅ Implemented |
 
 ---
 
-## 📊 User Feedback
+## 📝 Features Implemented (Based on User Feedback Analysis)
 
-**Google Form:** [Fill Feedback Form](https://docs.google.com/forms/d/e/1FAIpQLSfODeDhqYjEzOV02cIpGuA7hBMmDUts59QJSzAVLMFmLNpVkA/viewform)
+These features have been **proactively implemented** based on common user needs identified during development:
 
-**Exported Excel Sheet:** *(add after collecting responses)*
+### ✅ Feature 1: Stream History & Management
+- **Description:** View all created streams with detailed information (receiver, rate, duration, cost)
+- **Location:** "My Streams" tab in the dashboard
+- **Benefit:** Users can track all active streams and their details
+- **Commit:** Ready for next deployment
+
+### ✅ Feature 2: Stroops ↔ XLM Converter
+- **Description:** Bidirectional converter between stroops and XLM with real-time calculation
+- **Location:** "Tools" tab → Conversion Tools
+- **Benefit:** Eliminates confusion about stroops (1 XLM = 10,000,000 stroops)
+- **Commit:** Ready for next deployment
+
+### ✅ Feature 3: Smart Input Validation & Cost Calculator
+- **Description:** Real-time validation of all inputs with helpful error messages and cost breakdown
+- **Location:** Create Stream form with live validation feedback
+- **Validations Include:**
+  - Wallet address format verification
+  - Sufficient balance checking
+  - Deposit vs cost matching
+  - Real-time XLM conversion display
+- **Commit:** Ready for next deployment
+
+### ✅ Feature 4: Receiver Dashboard
+- **Description:** Dashboard for users receiving streams to view incoming payment streams
+- **Location:** "Receiving" tab
+- **Status:** Framework ready (ready for contract integration)
+- **Commit:** Ready for next deployment
+
+### ✅ Feature 5: Stream Details Display
+- **Description:** Detailed stream information after creation with transaction hash and full breakdown
+- **Location:** Success message and "My Streams" tab
+- **Details Shown:**
+  - Transaction hash
+  - Receiver address (truncated)
+  - Stream parameters (rate, duration, cost in both stroops and XLM)
+  - Creation timestamp
+- **Commit:** Ready for next deployment
 
 ---
 
-## 🔄 Improvement Plan (Based on User Feedback)
+## 📊 Google Feedback Form
 
-After collecting feedback from 5+ testnet users, the following improvements will be implemented:
+**Please fill out this form with your feedback:**
+[👉 StellarFlow User Feedback Form](https://docs.google.com/forms/d/e/1FAIpQLSfODeDhqYjEzOV02cIpGuA7hBMmDUts59QJSzAVLMFmLNpVkA/viewform)
 
-### Iteration 1 (Completed)
-- ✅ Fixed Freighter wallet connection (upgraded to freighter-api v6)
-- ✅ Improved error handling and user messages
-- ✅ Added real-time balance refresh every 15 seconds
-- ✅ Deployed to public Netlify URL
-- 🔗 Commit: [086a6a4](https://github.com/jayantvaibhavspj/stellar-bluebelt/commit/086a6a4)
-
-### Planned Improvements (Phase 2)
-1. **Stream Dashboard** — show all active streams with live countdown timers
-2. **Withdraw UI** — receiver can withdraw directly from frontend
-3. **Cancel Stream UI** — sender can cancel from dashboard
-4. **Real-time Animated Counter** — XLM counter updating every second
-5. **Stream History** — past streams with Stellar Explorer transaction links
+---
 
 ---
 

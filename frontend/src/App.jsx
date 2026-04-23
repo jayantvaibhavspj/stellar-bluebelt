@@ -29,6 +29,8 @@ const callRPC = async (method, params) => {
   return data.result;
 };
 
+const STROOPS_PER_XLM = 10000000;
+
 const App = () => {
   const [publicKey, setPublicKey] = useState(null);
   const [balance, setBalance] = useState('0');
@@ -42,6 +44,85 @@ const App = () => {
   const [duration, setDuration] = useState('');
   const [deposit, setDeposit] = useState('');
   const [isSending, setIsSending] = useState(false);
+  
+  // Feature 2: Stroops to XLM Converter
+  const [stroopsInput, setStroopsInput] = useState('');
+  const [xlmInput, setXlmInput] = useState('');
+  
+  // Feature 5: Stream Details
+  const [lastStreamId, setLastStreamId] = useState(null);
+  const [lastStreamTx, setLastStreamTx] = useState(null);
+  
+  // Feature 1 & 4: Stream History
+  const [myStreams, setMyStreams] = useState([]);
+  const [receivedStreams, setReceivedStreams] = useState([]);
+
+  // Feature 2: Stroops to XLM Converter
+  const stroopsToXlm = (stroops) => (stroops / STROOPS_PER_XLM).toFixed(7);
+  const xlmToStroops = (xlm) => Math.floor(xlm * STROOPS_PER_XLM);
+
+  const handleStroopsChange = (e) => {
+    const value = e.target.value;
+    setStroopsInput(value);
+    if (value) {
+      setXlmInput(stroopsToXlm(value));
+    } else {
+      setXlmInput('');
+    }
+  };
+
+  const handleXlmChange = (e) => {
+    const value = e.target.value;
+    setXlmInput(value);
+    if (value) {
+      setStroopsInput(xlmToStroops(value).toString());
+    } else {
+      setStroopsInput('');
+    }
+  };
+
+  // Feature 3: Input Validation & Calculator
+  const calculateStreamCost = () => {
+    if (rate && duration && deposit) {
+      const totalNeeded = parseInt(rate) * parseInt(duration);
+      const depositAmount = parseInt(deposit);
+      const xlmCost = stroopsToXlm(depositAmount);
+      const xlmNeeded = stroopsToXlm(totalNeeded);
+      return {
+        totalNeeded,
+        depositAmount,
+        isValid: depositAmount >= totalNeeded,
+        xlmCost,
+        xlmNeeded,
+        difference: depositAmount - totalNeeded,
+      };
+    }
+    return null;
+  };
+
+  const getInputError = () => {
+    if (!receiver || !rate || !duration || !deposit) return 'Please fill all fields';
+    
+    if (!receiver.startsWith('G') || receiver.length !== 56) {
+      return 'Invalid receiver address (should start with G and be 56 chars)';
+    }
+    
+    if (parseInt(rate) <= 0) return 'Rate must be greater than 0';
+    if (parseInt(duration) <= 0) return 'Duration must be greater than 0';
+    if (parseInt(deposit) <= 0) return 'Deposit must be greater than 0';
+
+    const calc = calculateStreamCost();
+    if (!calc.isValid) {
+      return `Deposit too low! Need ${calc.xlmNeeded} XLM (${calc.totalNeeded} stroops), but only have ${calc.xlmCost} XLM`;
+    }
+
+    const balanceStroops = Math.floor(parseFloat(balance) * STROOPS_PER_XLM);
+    if (parseInt(deposit) > balanceStroops) {
+      return `Insufficient balance! Need ${calc.xlmCost} XLM`;
+    }
+
+    return null;
+  };
 
   const connectWallet = async () => {
     setLoading(true);
@@ -86,11 +167,16 @@ const App = () => {
     setRate('');
     setDuration('');
     setDeposit('');
+    setStroopsInput('');
+    setXlmInput('');
+    setMyStreams([]);
+    setReceivedStreams([]);
   };
 
   const createStream = async () => {
-    if (!receiver || !rate || !duration || !deposit) {
-      setError('Please fill all fields!');
+    const validationError = getInputError();
+    if (validationError) {
+      setError(validationError);
       return;
     }
     setIsSending(true);
@@ -198,7 +284,22 @@ const App = () => {
         throw new Error('TX failed: ' + JSON.stringify(sendResult));
       }
 
-      setSuccess('🎉 Stream created! TX: ' + sendResult.hash);
+      // Feature 5: Store Stream Details
+      const calc = calculateStreamCost();
+      const streamData = {
+        receiver,
+        rate: parseInt(rate),
+        duration: parseInt(duration),
+        deposit: parseInt(deposit),
+        xlmAmount: calc.xlmCost,
+        createdAt: new Date().toLocaleString(),
+        txHash: sendResult.hash,
+      };
+      
+      setLastStreamTx(sendResult.hash);
+      setMyStreams([...myStreams, streamData]);
+      
+      setSuccess(`🎉 Stream Created! TX: ${sendResult.hash.slice(0, 20)}...`);
       await fetchBalance(publicKey);
       setReceiver('');
       setRate('');
@@ -309,6 +410,24 @@ const App = () => {
                 ➕ Create Stream
               </button>
               <button
+                className={activeTab === 'my-streams' ? 'tab active' : 'tab'}
+                onClick={() => setActiveTab('my-streams')}
+              >
+                📤 My Streams ({myStreams.length})
+              </button>
+              <button
+                className={activeTab === 'receive' ? 'tab active' : 'tab'}
+                onClick={() => setActiveTab('receive')}
+              >
+                📥 Receiving
+              </button>
+              <button
+                className={activeTab === 'tools' ? 'tab active' : 'tab'}
+                onClick={() => setActiveTab('tools')}
+              >
+                🔧 Tools
+              </button>
+              <button
                 className={activeTab === 'info' ? 'tab active' : 'tab'}
                 onClick={() => setActiveTab('info')}
               >
@@ -330,6 +449,11 @@ const App = () => {
                       onChange={e => setReceiver(e.target.value)}
                       disabled={isSending}
                     />
+                    {receiver && receiver.length > 0 && (
+                      <small className={receiver.startsWith('G') && receiver.length === 56 ? 'valid' : 'invalid'}>
+                        {receiver.startsWith('G') && receiver.length === 56 ? '✓ Valid address' : '✗ Invalid address format'}
+                      </small>
+                    )}
                   </div>
                   <div className="form-row">
                     <div className="form-group">
@@ -342,6 +466,7 @@ const App = () => {
                         onChange={e => setRate(e.target.value)}
                         disabled={isSending}
                       />
+                      {rate && <small>{stroopsToXlm(rate)} XLM/sec</small>}
                     </div>
                     <div className="form-group">
                       <label htmlFor="duration">Duration (seconds)</label>
@@ -353,6 +478,7 @@ const App = () => {
                         onChange={e => setDuration(e.target.value)}
                         disabled={isSending}
                       />
+                      {duration && <small>{Math.floor(duration / 60)} min {duration % 60} sec</small>}
                     </div>
                   </div>
                   <div className="form-group">
@@ -365,15 +491,134 @@ const App = () => {
                       onChange={e => setDeposit(e.target.value)}
                       disabled={isSending}
                     />
+                    {deposit && <small>{stroopsToXlm(deposit)} XLM</small>}
                   </div>
-                  {rate && duration && (
-                    <div className="preview">
-                      💡 Streaming {rate} stroops/sec for {duration} sec = {rate * duration} stroops total
+                  
+                  {calculateStreamCost() && (
+                    <div className={`preview ${calculateStreamCost().isValid ? 'valid' : 'invalid'}`}>
+                      <h4>Stream Summary</h4>
+                      <p>💰 Total Stream Cost: <strong>{calculateStreamCost().xlmNeeded} XLM</strong> ({calculateStreamCost().totalNeeded} stroops)</p>
+                      <p>💾 Your Deposit: <strong>{calculateStreamCost().xlmCost} XLM</strong></p>
+                      {calculateStreamCost().isValid ? (
+                        <p>✅ Deposit is sufficient! Extra: {stroopsToXlm(calculateStreamCost().difference)} XLM</p>
+                      ) : (
+                        <p>❌ Deposit too low! Need {stroopsToXlm(calculateStreamCost().totalNeeded - calculateStreamCost().depositAmount)} more XLM</p>
+                      )}
+                      <p>📊 Your Balance: <strong>{balance} XLM</strong></p>
                     </div>
                   )}
-                  <button onClick={createStream} disabled={isSending} className="btn-primary">
+                  
+                  <button onClick={createStream} disabled={isSending || !!getInputError()} className="btn-primary">
                     {isSending ? '⏳ Creating Stream...' : '💧 Create Stream'}
                   </button>
+                  {getInputError() && <p className="error-text">⚠️ {getInputError()}</p>}
+                </div>
+              </div>
+            )}
+
+            {activeTab === 'my-streams' && (
+              <div className="card">
+                <h2>My Streams (Sender)</h2>
+                {myStreams.length === 0 ? (
+                  <p className="empty">No streams created yet. <a onClick={() => setActiveTab('create')}>Create one now! 💧</a></p>
+                ) : (
+                  <div className="streams-list">
+                    {myStreams.map((stream, idx) => (
+                      <div key={idx} className="stream-item">
+                        <div className="stream-header">
+                          <h4>Stream #{idx + 1}</h4>
+                          <span className="badge">📤 Sending</span>
+                        </div>
+                        <table className="stream-table">
+                          <tbody>
+                            <tr>
+                              <td>Receiver:</td>
+                              <td><code>{stream.receiver.slice(0, 10)}...{stream.receiver.slice(-6)}</code></td>
+                            </tr>
+                            <tr>
+                              <td>Rate:</td>
+                              <td>{stream.rate} stroops/sec ({stroopsToXlm(stream.rate)} XLM/sec)</td>
+                            </tr>
+                            <tr>
+                              <td>Duration:</td>
+                              <td>{stream.duration} seconds ({Math.floor(stream.duration / 60)}m {stream.duration % 60}s)</td>
+                            </tr>
+                            <tr>
+                              <td>Total Cost:</td>
+                              <td>{stream.xlmAmount} XLM ({stream.deposit} stroops)</td>
+                            </tr>
+                            <tr>
+                              <td>Created:</td>
+                              <td>{stream.createdAt}</td>
+                            </tr>
+                            <tr>
+                              <td>TX Hash:</td>
+                              <td><code>{stream.txHash.slice(0, 20)}...</code></td>
+                            </tr>
+                          </tbody>
+                        </table>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {activeTab === 'receive' && (
+              <div className="card">
+                <h2>Receiving Streams (Receiver)</h2>
+                <p>Enter an address to check incoming streams:</p>
+                <div className="form">
+                  <div className="form-group">
+                    <input
+                      type="text"
+                      placeholder="G... (Address to check for incoming streams)"
+                      disabled
+                    />
+                  </div>
+                  <p className="info">💡 <strong>Feature:</strong> Receiver dashboard coming soon! You can already withdraw from streams created for you. Check stream details by asking the sender for the Stream ID.</p>
+                </div>
+              </div>
+            )}
+
+            {activeTab === 'tools' && (
+              <div className="card">
+                <h2>🔧 Conversion Tools</h2>
+                <div className="form">
+                  <h3>Stroops ↔ XLM Converter</h3>
+                  <div className="form-row">
+                    <div className="form-group">
+                      <label htmlFor="stroops">Stroops</label>
+                      <input
+                        id="stroops"
+                        type="number"
+                        placeholder="Enter stroops"
+                        value={stroopsInput}
+                        onChange={handleStroopsChange}
+                      />
+                      <small>1 XLM = 10,000,000 stroops</small>
+                    </div>
+                    <div className="converter-icon">
+                      <p>⇄</p>
+                    </div>
+                    <div className="form-group">
+                      <label htmlFor="xlm">XLM</label>
+                      <input
+                        id="xlm"
+                        type="number"
+                        placeholder="Enter XLM"
+                        value={xlmInput}
+                        onChange={handleXlmChange}
+                        step="0.0000001"
+                      />
+                      <small>Decimal format</small>
+                    </div>
+                  </div>
+                  {stroopsInput && xlmInput && (
+                    <div className="preview valid">
+                      <p>✅ {stroopsInput} stroops = {xlmInput} XLM</p>
+                    </div>
+                  )}
                 </div>
               </div>
             )}
