@@ -94,13 +94,13 @@ CDVKXMYN2STPUCCUY742YSNHTM3KJFPPJIW3CKMS7N6SIS3IWKHXS3RJ
 
 ### Table 2: User Feedback Implementation Log
 
-| User Name | User Email | User Wallet Address | Feedback | Implementation | Status |
-|-----------|-----------|---|---------|---|---|
-| Abhishek Gupta | abhishekgupta0834@gmail.com | GBEA2LH5VILCEKQC6M77GXGJ3CPJOOMGEKNMMNXQXMJA42BMPX4YSN72 | Stream Details Display — Shows after creation | Feature 5: Stream Details added with TX hash, receiver, rate, duration, cost in XLM/stroops, and timestamp | ✅ Implemented |
-| Saurabh Kumar | saurabhkumar20k5@gmail.com | GDPQMIGKM2YC4LDMMUTWU35CMRSJKWVYH2QW6EU3XIE7AWPUVKLRMJGP | Stroops to XLM converter tab must needed | Feature 2: Bidirectional Stroops ↔ XLM converter in "Tools" tab with real-time conversion | ✅ Implemented |
-| Prithwiraj Das | prithwirajdas84@gmail.com | GDNCZO2EUNABT3D6PV7GIBUWCPLJBT5EG4PXN7HSDR5LGZVHI5HSZ2MI | Smart Input Validation and Calculator missing | Feature 3: Smart validation with address format check, balance verification, deposit vs cost matching, and XLM conversion display | ✅ Implemented |
-| Prashant Vaibhav | prashantvaibhavlnmcb@gmail.com | GAUGBIDSUADNR2R57GJ3NVA2N22JQYLKLIPVU2ODINAHRXYVJ3SKEE7W | Receiver Dashboard will be better to use | Feature 4: Receiver Dashboard tab added with framework ready for receiving streams | ✅ Implemented |
-| Sarvesh Choudhary | sarveshchoudhary2606@gmail.com | GBAVDHPWSB6XGO2LVVOPZF5RCQVGDIZI3MTA7GIOAFQ | Stream History & Management "My Streams" tab | Feature 1: My Streams tab showing all created streams with receiver, rate, duration, cost, timestamp, and TX hash | ✅ Implemented |
+| User Name | User Email | User Wallet Address | Feedback | Implementation | Commit IDs | Status |
+|-----------|-----------|---|---------|---|---|---|
+| Abhishek Gupta | abhishekgupta0834@gmail.com | GBEA2LH5VILCEKQC6M77GXGJ3CPJOOMGEKNMMNXQXMJA42BMPX4YSN72 | Stream Details Display — Shows after creation | Feature 5: Stream Details added with TX hash, receiver, rate, duration, cost in XLM/stroops, and timestamp | [5c30201](https://github.com/jayantvaibhavspj/stellar-bluebelt/commit/5c30201) | ✅ Implemented |
+| Saurabh Kumar | saurabhkumar20k5@gmail.com | GDPQMIGKM2YC4LDMMUTWU35CMRSJKWVYH2QW6EU3XIE7AWPUVKLRMJGP | Stroops to XLM converter tab must needed | Feature 2: Bidirectional Stroops ↔ XLM converter in "Tools" tab with real-time conversion | [5c30201](https://github.com/jayantvaibhavspj/stellar-bluebelt/commit/5c30201) | ✅ Implemented |
+| Prithwiraj Das | prithwirajdas84@gmail.com | GDNCZO2EUNABT3D6PV7GIBUWCPLJBT5EG4PXN7HSDR5LGZVHI5HSZ2MI | Smart Input Validation and Calculator missing | Feature 3: Smart validation with address format check, balance verification, deposit vs cost matching, and XLM conversion display | [5c30201](https://github.com/jayantvaibhavspj/stellar-bluebelt/commit/5c30201) | ✅ Implemented |
+| Prashant Vaibhav | prashantvaibhavlnmcb@gmail.com | GAUGBIDSUADNR2R57GJ3NVA2N22JQYLKLIPVU2ODINAHRXYVJ3SKEE7W | Receiver Dashboard will be better to use | Feature 4: Receiver Dashboard tab added with framework ready for receiving streams | [5c30201](https://github.com/jayantvaibhavspj/stellar-bluebelt/commit/5c30201) | ✅ Implemented |
+| Sarvesh Choudhary | sarveshchoudhary2606@gmail.com | GBAVDHPWSB6XGO2LVVOPZF5RCQVGDIZI3MTA7GIOAFQ | Stream History & Management "My Streams" tab | Feature 1: My Streams tab showing all created streams with receiver, rate, duration, cost, timestamp, and TX hash | [5c30201](https://github.com/jayantvaibhavspj/stellar-bluebelt/commit/5c30201) | ✅ Implemented |
 
 ---
 
